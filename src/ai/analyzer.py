@@ -22,18 +22,22 @@ class AIAnalyzer:
         issues: List[Dict[str, str]],
         pulls: List[Dict[str, str]],
     ) -> str:
-        """Create prompt for AI."""
-
+        """Create structured prompt for AI."""
         commit_messages = [c["message"] for c in commits[:10]]
         issue_titles = [i["title"] for i in issues[:10]]
         pr_titles = [p["title"] for p in pulls[:10]]
 
         return (
-            "You are an experienced technical product manager.\n\n"
-            "Analyze the following repository activity and provide:\n"
-            "1. Summary of what is happening\n"
-            "2. Key risks\n"
-            "3. Recommended next actions\n\n"
+            "You are a senior technical product manager.\n\n"
+            "Analyze the repository activity and respond STRICTLY in "
+            "this format:\n\n"
+            "### Summary\n"
+            "- ...\n\n"
+            "### Key Risks\n"
+            "- ...\n\n"
+            "### Recommended Actions\n"
+            "- ...\n\n"
+            "Be concise, specific, and actionable.\n\n"
             f"Commits:\n{commit_messages}\n\n"
             f"Issues:\n{issue_titles}\n\n"
             f"Pull Requests:\n{pr_titles}\n"
@@ -46,7 +50,6 @@ class AIAnalyzer:
         pulls: List[Dict[str, str]],
     ) -> str:
         """Send data to AI and get analysis."""
-
         prompt = self._build_prompt(commits, issues, pulls)
 
         headers = {
