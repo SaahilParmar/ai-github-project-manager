@@ -1,5 +1,9 @@
 """Entry point for AI GitHub Project Manager."""
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from src.ai.analyzer import AIAnalyzer
 from src.core.risk_detector import RiskDetector
 from src.core.summarizer import Summarizer

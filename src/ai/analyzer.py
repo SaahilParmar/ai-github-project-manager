@@ -1,18 +1,23 @@
 """AI-based analysis for GitHub repository."""
 
+import os
 from typing import Dict, List
 
 import requests
 
-from src.config import OPENAI_API_KEY, OPENAI_URL
+from src.config import OPENAI_URL
 
 
 class AIAnalyzer:
     """Uses LLM to generate intelligent insights."""
 
     def __init__(self) -> None:
+        self.api_key = os.getenv("OPENAI_API_KEY")
+
         self.headers = {
-            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Authorization": f"Bearer {self.api_key}"
+            if self.api_key
+            else "",
             "Content-Type": "application/json",
         }
 
@@ -50,6 +55,10 @@ class AIAnalyzer:
         pulls: List[Dict[str, str]],
     ) -> str:
         """Send data to AI and get analysis."""
+
+        if not self.api_key:
+            return "AI Analysis skipped: OPENAI_API_KEY not set."
+
         prompt = self._build_prompt(commits, issues, pulls)
 
         payload = {
@@ -61,13 +70,23 @@ class AIAnalyzer:
             "temperature": 0.3,
         }
 
-        response = requests.post(
-            OPENAI_URL,
-            headers=self.headers,
-            json=payload,
-            timeout=20,
-        )
-        response.raise_for_status()
+        try:
+            response = requests.post(
+                OPENAI_URL,
+                headers=self.headers,
+                json=payload,
+                timeout=20,
+            )
+            response.raise_for_status()
 
-        data = response.json()
-        return data["choices"][0]["message"]["content"]
+            data = response.json()
+            return data["choices"][0]["message"]["content"]
+
+        except requests.exceptions.HTTPError as e:
+            return f"AI Analysis failed (HTTP): {str(e)}"
+
+        except requests.exceptions.RequestException as e:
+            return f"AI Analysis failed (Network): {str(e)}"
+
+        except (KeyError, IndexError):
+            return "AI Analysis failed: Unexpected response format."
