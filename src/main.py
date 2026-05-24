@@ -1,5 +1,5 @@
 """CLI entry point for AI GitHub Project Manager."""
-
+print("🔥 NEW MAIN.PY IS RUNNING")
 import sys
 
 from dotenv import load_dotenv
