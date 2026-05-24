@@ -1,77 +1,10 @@
-"""Suggest next actions based on repository state."""
+"""Context-aware task suggestions."""
 
 from typing import Dict, List
 
 
 class TaskSuggester:
-    """Generates actionable recommendations."""
-
-    @staticmethod
-    def suggest_from_commits(
-        commits: List[Dict[str, str]],
-    ) -> List[str]:
-        """Suggest actions based on commit patterns."""
-        if not commits:
-            return ["Start development: no commits detected."]
-
-        messages = [commit["message"].lower() for commit in commits]
-
-        suggestions = []
-
-        fix_count = sum("fix" in msg for msg in messages)
-        if fix_count > len(commits) * 0.5:
-            suggestions.append(
-                "Focus on stabilizing features before adding new ones."
-            )
-
-        if all("fix" not in msg for msg in messages):
-            suggestions.append(
-                "Consider adding tests to maintain code quality."
-            )
-
-        return suggestions
-
-    @staticmethod
-    def suggest_from_issues(
-        issues: List[Dict[str, str]],
-    ) -> List[str]:
-        """Suggest actions based on issue state."""
-        if not issues:
-            return ["Create issues to track tasks and improvements."]
-
-        open_issues = sum(
-            1 for issue in issues if issue["state"] == "open"
-        )
-
-        suggestions = []
-
-        if open_issues > len(issues) * 0.7:
-            suggestions.append(
-                "Prioritize resolving open issues to reduce backlog."
-            )
-
-        return suggestions
-
-    @staticmethod
-    def suggest_from_pulls(
-        pulls: List[Dict[str, str]],
-    ) -> List[str]:
-        """Suggest actions based on pull requests."""
-        if not pulls:
-            return ["Introduce pull requests for better code review."]
-
-        open_pulls = sum(
-            1 for pr in pulls if pr["state"] == "open"
-        )
-
-        suggestions = []
-
-        if open_pulls > 5:
-            suggestions.append(
-                "Review pending pull requests to avoid merge delays."
-            )
-
-        return suggestions
+    """Suggest actionable improvements."""
 
     @staticmethod
     def aggregate_suggestions(
@@ -79,20 +12,46 @@ class TaskSuggester:
         issues: List[Dict[str, str]],
         pulls: List[Dict[str, str]],
     ) -> List[str]:
-        """Combine all suggestions."""
         suggestions = []
 
-        suggestions.extend(
-            TaskSuggester.suggest_from_commits(commits)
-        )
-        suggestions.extend(
-            TaskSuggester.suggest_from_issues(issues)
-        )
-        suggestions.extend(
-            TaskSuggester.suggest_from_pulls(pulls)
-        )
+        commit_count = len(commits)
+        issue_count = len(issues)
+        pr_count = len(pulls)
 
-        if not suggestions:
-            return ["Project is in a healthy state."]
+        # ✅ Introduce PR workflow
+        if commit_count > 0 and pr_count == 0:
+            suggestions.append(
+                "Introduce pull request workflow to ensure code review and collaboration."
+            )
+
+        # ✅ Handle backlog
+        if issue_count > commit_count:
+            suggestions.append(
+                "Prioritize resolving existing issues before adding new features."
+            )
+
+        # ✅ Improve stability
+        bug_keywords = ["fix", "bug", "error"]
+        bug_commits = [
+            c for c in commits
+            if any(k in c["message"].lower() for k in bug_keywords)
+        ]
+
+        if len(bug_commits) > commit_count * 0.4:
+            suggestions.append(
+                "Focus on stabilizing core functionality before expanding features."
+            )
+
+        # ✅ Boost activity
+        if commit_count < 3:
+            suggestions.append(
+                "Increase development activity to maintain project momentum."
+            )
+
+        # ✅ Track work properly
+        if issue_count == 0:
+            suggestions.append(
+                "Start using GitHub Issues to track tasks and improvements."
+            )
 
         return suggestions

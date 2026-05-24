@@ -1,10 +1,12 @@
-"""Entry point for AI GitHub Project Manager."""
+"""CLI entry point for AI GitHub Project Manager."""
+
+import sys
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from src.ai.analyzer import AIAnalyzer
+from src.core.health_score import HealthScore
 from src.core.risk_detector import RiskDetector
 from src.core.summarizer import Summarizer
 from src.core.task_suggester import TaskSuggester
@@ -12,10 +14,8 @@ from src.github.fetcher import GitHubFetcher
 from src.github.parser import GitHubParser
 
 
-def main() -> None:
-    """Run the application."""
-    repo = input("Enter GitHub repo (owner/repo): ").strip()
-
+def analyze_repo(repo: str) -> None:
+    """Analyze a GitHub repository."""
     fetcher = GitHubFetcher()
 
     raw_commits = fetcher.get_commits(repo)
@@ -26,34 +26,54 @@ def main() -> None:
     issues = GitHubParser.parse_issues(raw_issues)
     pulls = GitHubParser.parse_pull_requests(raw_pulls)
 
-    commit_summary = Summarizer.summarize_commits(commits)
-    issue_summary = Summarizer.summarize_issues(issues)
-    pr_summary = Summarizer.summarize_pull_requests(pulls)
+    print("\n--- Summary ---\n")
 
-    risks = RiskDetector.aggregate_risks(commits, issues, pulls)
-    suggestions = TaskSuggester.aggregate_suggestions(
-        commits, issues, pulls
-    )
+    print("Commits:")
+    print(Summarizer.summarize_commits(commits))
 
-    print("\n--- Rule-Based Summary ---\n")
-    print(f"Commits: {commit_summary}")
-    print(f"Issues: {issue_summary}")
-    print(f"Pull Requests: {pr_summary}")
+    print("\nIssues:")
+    print(Summarizer.summarize_issues(issues))
 
-    print("\n--- Risk Analysis ---")
-    for risk in risks:
+    print("\nPull Requests:")
+    print(Summarizer.summarize_pull_requests(pulls))
+
+    # 🔥 HEALTH SCORE
+    score, insights = HealthScore.calculate(commits, issues, pulls)
+
+    print("\n--- Project Health ---\n")
+    print(f"Score: {score} / 10\n")
+
+    for insight in insights:
+        print(f"- {insight}")
+
+    print("\n--- Risks ---")
+    for risk in RiskDetector.aggregate_risks(commits, issues, pulls):
         print(f"- {risk}")
 
     print("\n--- Suggested Actions ---")
-    for suggestion in suggestions:
+    for suggestion in TaskSuggester.aggregate_suggestions(
+        commits, issues, pulls
+    ):
         print(f"- {suggestion}")
 
-    print("\n--- AI Analysis ---\n")
 
-    analyzer = AIAnalyzer()
-    ai_output = analyzer.analyze(commits, issues, pulls)
+def main() -> None:
+    """CLI handler."""
+    if len(sys.argv) < 3:
+        print(
+            "Usage:\n"
+            "  python -m src.main analyze <owner/repo>"
+        )
+        sys.exit(1)
 
-    print(ai_output)
+    command = sys.argv[1]
+    repo = sys.argv[2]
+
+    if command == "analyze":
+        analyze_repo(repo)
+    else:
+        print(f"Unknown command: {command}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
