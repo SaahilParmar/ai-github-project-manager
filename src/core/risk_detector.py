@@ -1,10 +1,10 @@
-"""Advanced risk detection based on repository patterns."""
+"""Advanced risk detection."""
 
 from typing import Dict, List
 
 
 class RiskDetector:
-    """Detect risks using heuristics."""
+    """Detect deeper risks."""
 
     @staticmethod
     def aggregate_risks(
@@ -18,40 +18,35 @@ class RiskDetector:
         issue_count = len(issues)
         pr_count = len(pulls)
 
-        # 🔴 No PR usage
+        messages = [c["message"].lower() for c in commits]
+
+        # 🔴 No PRs
         if commit_count > 0 and pr_count == 0:
             risks.append(
-                "Commits are being made without pull requests — risk of no code review."
+                "No pull requests detected — high risk of unreviewed code."
             )
 
-        # 🔴 Too many issues vs commits
-        if issue_count > commit_count:
-            risks.append(
-                "More issues than commits — backlog may be growing without resolution."
-            )
-
-        # 🔴 Bug-heavy commits
-        bug_keywords = ["fix", "bug", "error", "issue"]
+        # 🔴 Bug-heavy
+        bug_keywords = ["fix", "bug", "error"]
         bug_commits = [
-            c for c in commits
-            if any(k in c["message"].lower() for k in bug_keywords)
+            m for m in messages if any(k in m for k in bug_keywords)
         ]
 
-        if len(bug_commits) > commit_count * 0.4:
+        if commit_count > 0 and len(bug_commits) > commit_count * 0.4:
             risks.append(
-                "High number of bug-related commits — potential stability issues."
+                "High proportion of bug-fix commits — indicates unstable system."
+            )
+
+        # 🔴 No issues
+        if commit_count > 5 and issue_count == 0:
+            risks.append(
+                "No issue tracking despite active commits — lack of structured workflow."
             )
 
         # 🔴 Low activity
         if commit_count < 3:
             risks.append(
-                "Low commit activity — project may be inactive or in early stage."
-            )
-
-        # 🔴 Issues without PRs
-        if issue_count > 0 and pr_count == 0:
-            risks.append(
-                "Issues exist but no pull requests — possible lack of implementation progress."
+                "Very low commit activity — project may be inactive."
             )
 
         return risks

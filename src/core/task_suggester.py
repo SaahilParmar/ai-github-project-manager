@@ -1,10 +1,10 @@
-"""Context-aware task suggestions."""
+"""Advanced task suggestions using behavioral patterns."""
 
 from typing import Dict, List
 
 
 class TaskSuggester:
-    """Suggest actionable improvements."""
+    """Suggest contextual improvements."""
 
     @staticmethod
     def aggregate_suggestions(
@@ -18,40 +18,41 @@ class TaskSuggester:
         issue_count = len(issues)
         pr_count = len(pulls)
 
-        # ✅ Introduce PR workflow
-        if commit_count > 0 and pr_count == 0:
+        messages = [c["message"].lower() for c in commits]
+
+        # 🔴 PR workflow missing
+        if commit_count > 3 and pr_count == 0:
             suggestions.append(
-                "Introduce pull request workflow to ensure code review and collaboration."
+                f"{commit_count} commits detected with no pull requests — introduce PR workflow for code review."
             )
 
-        # ✅ Handle backlog
-        if issue_count > commit_count:
+        # 🔴 Issue tracking missing
+        if commit_count > 5 and issue_count == 0:
             suggestions.append(
-                "Prioritize resolving existing issues before adding new features."
+                "Active development detected but no issues — use GitHub Issues for structured planning."
             )
 
-        # ✅ Improve stability
+        # 🔴 Bug-heavy repo
         bug_keywords = ["fix", "bug", "error"]
         bug_commits = [
-            c for c in commits
-            if any(k in c["message"].lower() for k in bug_keywords)
+            m for m in messages if any(k in m for k in bug_keywords)
         ]
 
-        if len(bug_commits) > commit_count * 0.4:
-            suggestions.append(
-                "Focus on stabilizing core functionality before expanding features."
-            )
+        if commit_count > 0:
+            bug_ratio = len(bug_commits) / commit_count
 
-        # ✅ Boost activity
-        if commit_count < 3:
-            suggestions.append(
-                "Increase development activity to maintain project momentum."
-            )
+            if bug_ratio > 0.4:
+                suggestions.append(
+                    f"{int(bug_ratio * 100)}% of commits are bug-related — prioritize stability over new features."
+                )
 
-        # ✅ Track work properly
-        if issue_count == 0:
-            suggestions.append(
-                "Start using GitHub Issues to track tasks and improvements."
-            )
+        # 🔴 Repetitive commits
+        if commit_count > 3:
+            unique_ratio = len(set(messages)) / len(messages)
+
+            if unique_ratio < 0.5:
+                suggestions.append(
+                    "Commit messages are repetitive — improve commit clarity and structure."
+                )
 
         return suggestions
