@@ -5,6 +5,8 @@ from typing import Dict, List
 
 import requests
 
+MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+
 
 class AIAnalyzer:
     """AI-based analysis using Groq."""
@@ -71,7 +73,7 @@ class AIAnalyzer:
         }
 
         payload = {
-            "model": "llama-3.1-8b-instant",
+            "model":MODEL,
             "messages": [
                 {
                     "role": "user",
