@@ -1,4 +1,4 @@
-"""AI Analyzer with safe fallback."""
+"""AI Analyzer using Groq (free, fast)."""
 
 import os
 from typing import Dict, List
@@ -7,10 +7,10 @@ import requests
 
 
 class AIAnalyzer:
-    """AI-based analysis (optional)."""
+    """AI-based analysis using Groq."""
 
     def __init__(self) -> None:
-        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.api_key = os.getenv("GROQ_API_KEY")
 
     def analyze(
         self,
@@ -21,10 +21,10 @@ class AIAnalyzer:
         """Return AI insights or fallback."""
 
         if not self.api_key:
-            return "AI not configured."
+            return "AI not configured (missing GROQ_API_KEY)."
 
         try:
-            return self._call_openai(commits, issues, pulls)
+            return self._call_groq(commits, issues, pulls)
         except Exception as exc:  # noqa: BLE001
             return f"AI unavailable: {str(exc)}"
 
@@ -42,25 +42,28 @@ class AIAnalyzer:
 
         return (
             "You are a senior technical product manager.\n\n"
-            "Analyze repository activity and give sharp insights.\n\n"
-            "Return:\n"
-            "1. Key observation\n"
-            "2. Risk\n"
-            "3. Action\n\n"
+            "Analyze repository activity and provide sharp, non-generic insights.\n\n"
+            "Respond STRICTLY in this format:\n\n"
+            "### Key Observation\n"
+            "- ...\n\n"
+            "### Risk\n"
+            "- ...\n\n"
+            "### Action\n"
+            "- ...\n\n"
             f"Commits:\n{commit_msgs}\n\n"
             f"Issues:\n{issue_titles}\n\n"
             f"Pull Requests:\n{pr_titles}\n"
         )
 
-    def _call_openai(
+    def _call_groq(
         self,
         commits: List[Dict[str, str]],
         issues: List[Dict[str, str]],
         pulls: List[Dict[str, str]],
     ) -> str:
-        """Call OpenAI API."""
+        """Call Groq API."""
 
-        url = "https://api.openai.com/v1/chat/completions"
+        url = "https://api.groq.com/openai/v1/chat/completions"
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -68,7 +71,7 @@ class AIAnalyzer:
         }
 
         payload = {
-            "model": "gpt-4o-mini",
+            "model": "llama3-8b-8192",
             "messages": [
                 {
                     "role": "user",
@@ -81,7 +84,7 @@ class AIAnalyzer:
         response = requests.post(url, headers=headers, json=payload, timeout=30)
 
         if response.status_code != 200:
-            return f"AI failed ({response.status_code})"
+            return f"AI failed ({response.status_code}): {response.text}"
 
         data = response.json()
 
