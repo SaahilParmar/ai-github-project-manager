@@ -1,11 +1,12 @@
-"""CLI entry point for AI GitHub Project Manager."""
-print("🔥 NEW MAIN.PY IS RUNNING")
+"""CLI entry point."""
+
 import sys
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
+from src.ai.analyzer import AIAnalyzer
 from src.core.health_score import HealthScore
 from src.core.risk_detector import RiskDetector
 from src.core.summarizer import Summarizer
@@ -15,7 +16,6 @@ from src.github.parser import GitHubParser
 
 
 def analyze_repo(repo: str) -> None:
-    """Analyze a GitHub repository."""
     fetcher = GitHubFetcher()
 
     raw_commits = fetcher.get_commits(repo)
@@ -37,7 +37,7 @@ def analyze_repo(repo: str) -> None:
     print("\nPull Requests:")
     print(Summarizer.summarize_pull_requests(pulls))
 
-    # 🔥 HEALTH SCORE
+    # 🔥 Health Score
     score, insights = HealthScore.calculate(commits, issues, pulls)
 
     print("\n--- Project Health ---\n")
@@ -46,24 +46,30 @@ def analyze_repo(repo: str) -> None:
     for insight in insights:
         print(f"- {insight}")
 
+    # 🔥 Risks
     print("\n--- Risks ---")
     for risk in RiskDetector.aggregate_risks(commits, issues, pulls):
         print(f"- {risk}")
 
+    # 🔥 Suggestions
     print("\n--- Suggested Actions ---")
     for suggestion in TaskSuggester.aggregate_suggestions(
         commits, issues, pulls
     ):
         print(f"- {suggestion}")
 
+    # 🔥 AI Layer
+    print("\n--- AI Insights ---")
+
+    analyzer = AIAnalyzer()
+    ai_output = analyzer.analyze(commits, issues, pulls)
+
+    print(ai_output)
+
 
 def main() -> None:
-    """CLI handler."""
     if len(sys.argv) < 3:
-        print(
-            "Usage:\n"
-            "  python -m src.main analyze <owner/repo>"
-        )
+        print("Usage: python -m src.main analyze <owner/repo>")
         sys.exit(1)
 
     command = sys.argv[1]
@@ -72,7 +78,7 @@ def main() -> None:
     if command == "analyze":
         analyze_repo(repo)
     else:
-        print(f"Unknown command: {command}")
+        print("Unknown command")
         sys.exit(1)
 
 
